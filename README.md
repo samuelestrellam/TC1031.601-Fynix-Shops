@@ -5,7 +5,7 @@
 
 ## Descripción del proyecto
 
-FYNIX es un proyecto enfocado en desarrollar un sistema para la gestión de una tienda de ropa deportiva.
+FYNIX es un proyecto enfocado en desarrollar un sistema para la gestión de mi tienda de ropa deportiva.
 
 El sistema tendrá como objetivo organizar y facilitar el manejo de la información relacionada con los productos de la tienda, permitiendo consultar el catálogo, organizar los productos, conocer su disponibilidad y acceder a la información de manera eficiente.
 
