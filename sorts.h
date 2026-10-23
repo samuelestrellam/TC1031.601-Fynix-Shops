@@ -1,58 +1,45 @@
+// sorts.h
+// Samuel Estrella Martinez A01714991
+// Merge Sort: O(n log n) en todos los casos
+
 #ifndef SORTS_H
 #define SORTS_H
 
-#include <iostream>
-#include <string>
+#include <vector>
+#include "producto.h"
 
-using namespace std;
+// criterio 1 = precio, 2 = stock
+bool esMenor(const Producto &a, const Producto &b, int criterio) {
+    if (criterio == 1) return a.getPrecio() < b.getPrecio();
+    return a.getStock() < b.getStock();
+}
 
-struct Producto {
-    int id;
-    string nombre;
-    string categoria;
-    float precio;
-    int stock;
-};
+void mergeArray(vector<Producto> &A, vector<Producto> &B, int low, int mid, int high, int criterio) {
+    int i = low, j = mid + 1, k = low;
 
-void insertionSortPrecio(Producto productos[], int n) {
-    for (int i = 1; i < n; i++) {
-        Producto aux = productos[i];
-        int j = i - 1;
+    while (i <= mid && j <= high) {
+        if (esMenor(A[j], A[i], criterio)) B[k++] = A[j++];
+        else B[k++] = A[i++];
+    }
+    while (i <= mid) B[k++] = A[i++];
+    while (j <= high) B[k++] = A[j++];
 
-        while (j >= 0 && productos[j].precio > aux.precio) {
-            productos[j + 1] = productos[j];
-            j--;
-        }
+    for (int x = low; x <= high; x++) A[x] = B[x];
+}
 
-        productos[j + 1] = aux;
+void mergeSplit(vector<Producto> &A, vector<Producto> &B, int low, int high, int criterio) {
+    if (low < high) {
+        int mid = (low + high) / 2;
+        mergeSplit(A, B, low, mid, criterio);
+        mergeSplit(A, B, mid + 1, high, criterio);
+        mergeArray(A, B, low, mid, high, criterio);
     }
 }
 
-void insertionSortStock(Producto productos[], int n) {
-    for (int i = 1; i < n; i++) {
-        Producto aux = productos[i];
-        int j = i - 1;
-
-        while (j >= 0 && productos[j].stock > aux.stock) {
-            productos[j + 1] = productos[j];
-            j--;
-        }
-
-        productos[j + 1] = aux;
-    }
-}
-
-void mostrarProductos(Producto productos[], int n) {
-    cout << "\nProductos:\n";
-
-    for (int i = 0; i < n; i++) {
-        cout << productos[i].id << ". "
-             << productos[i].nombre
-             << " | " << productos[i].categoria
-             << " | $" << productos[i].precio
-             << " | Stock: " << productos[i].stock
-             << endl;
-    }
+void mergeSort(vector<Producto> &v, int criterio) {
+    if (v.size() < 2) return;
+    vector<Producto> tmp(v.size());
+    mergeSplit(v, tmp, 0, v.size() - 1, criterio);
 }
 
 #endif
