@@ -1,5 +1,5 @@
 // main.cpp
-// Proyecto Fynix - Avance 2
+// Proyecto Fynix - Avance 3
 // Samuel Estrella Martinez A01714991
 
 #include <iostream>
@@ -14,6 +14,32 @@
 using namespace std;
 
 int siguienteId = 1;
+bool hayCambios = false;
+
+// Pide un numero y lo vuelve a pedir si escriben letras o un negativo. O(1)
+int leerNumero(string mensaje) {
+    int x;
+    cout << mensaje;
+    while (!(cin >> x) || x < 0) {
+        cin.clear();
+        cin.ignore(1000, '\n');
+        cout << "Numero no valido, intenta otra vez: ";
+    }
+    cin.ignore(1000, '\n');
+    return x;
+}
+
+// Pide un texto sin comas para que no se rompa el csv. O(1)
+string leerTexto(string mensaje) {
+    string s;
+    cout << mensaje;
+    getline(cin, s);
+    while (s == "" || s.find(',') != string::npos) {
+        cout << "No puede estar vacio ni tener comas: ";
+        getline(cin, s);
+    }
+    return s;
+}
 
 // Lee productos.csv y los mete al AVL. O(n log n)
 void cargarArchivo(AVL &inventario) {
@@ -38,9 +64,14 @@ void cargarArchivo(AVL &inventario) {
         getline(ss, precio, ',');
         getline(ss, stock, ',');
 
-        Producto p(stoi(id), nombre, categoria, stoi(precio), stoi(stock));
-        inventario.insertar(p);
-        if (p.getId() >= siguienteId) siguienteId = p.getId() + 1;
+        // si la linea viene mal stoi falla, entonces me la salto
+        try {
+            Producto p(stoi(id), nombre, categoria, stoi(precio), stoi(stock));
+            inventario.insertar(p);
+            if (p.getId() >= siguienteId) siguienteId = p.getId() + 1;
+        } catch (exception &e) {
+            cout << "Se salto una linea con error: " << linea << endl;
+        }
     }
     archivo.close();
 }
@@ -48,13 +79,50 @@ void cargarArchivo(AVL &inventario) {
 // Guarda el inventario en el archivo. O(n)
 void guardarArchivo(AVL &inventario) {
     ofstream archivo("productos.csv");
+    if (!archivo.is_open()) {
+        cout << "No se pudo guardar el archivo." << endl;
+        return;
+    }
     archivo << "id,nombre,categoria,precio,stock" << endl;
     for (Producto p : inventario.inorden()) {
         archivo << p.getId() << "," << p.getNombre() << "," << p.getCategoria() << ","
                 << p.getPrecio() << "," << p.getStock() << endl;
     }
     archivo.close();
+    hayCambios = false;
     cout << "Inventario guardado." << endl;
+}
+
+// Crea reporte.txt con el resumen y los productos que hay que resurtir. O(n log n)
+void generarReporte(AVL &inventario) {
+    ofstream archivo("reporte.txt");
+    if (!archivo.is_open()) {
+        cout << "No se pudo crear el reporte." << endl;
+        return;
+    }
+
+    vector<Producto> todos = inventario.inorden();
+    vector<Producto> resurtir;
+    int unidades = 0;
+    int valor = 0;
+
+    for (Producto p : todos) {
+        unidades += p.getStock();
+        valor += p.getPrecio() * p.getStock();
+        if (p.getStock() <= 5) resurtir.push_back(p);
+    }
+    mergeSort(resurtir, 2);
+
+    archivo << "REPORTE FYNIX" << endl;
+    archivo << "Productos: " << todos.size() << endl;
+    archivo << "Unidades: " << unidades << endl;
+    archivo << "Valor del inventario: $" << valor << endl;
+    archivo << endl << "Productos con 5 piezas o menos:" << endl;
+    for (Producto p : resurtir) {
+        archivo << p.getNombre() << " - " << p.getStock() << " piezas" << endl;
+    }
+    archivo.close();
+    cout << "Reporte guardado en reporte.txt" << endl;
 }
 
 void mostrarLista(vector<Producto> lista) {
@@ -81,15 +149,9 @@ int main() {
         cout << "6. Eliminar producto\n";
         cout << "7. Actualizar stock\n";
         cout << "8. Guardar en archivo\n";
+        cout << "9. Generar reporte\n";
         cout << "0. Salir\n";
-        cout << "Opcion: ";
-        cin >> opcion;
-
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(1000, '\n');
-            opcion = -1;
-        }
+        opcion = leerNumero("Opcion: ");
         cout << "___________________________________\n";
 
         if (opcion == 1) {
@@ -106,49 +168,40 @@ int main() {
             mostrarLista(lista);
         }
         else if (opcion == 4) {
-            cout << "Nombre: ";
-            cin.ignore();
-            getline(cin, nombre);
+            nombre = leerTexto("Nombre: ");
             Producto *p = inventario.buscar(nombre);
             if (p != nullptr) p->mostrar();
             else cout << "No se encontro el producto." << endl;
         }
         else if (opcion == 5) {
-            string categoria;
-            int precio, stock;
-            cin.ignore();
-            cout << "Nombre: ";
-            getline(cin, nombre);
-            cout << "Categoria: ";
-            getline(cin, categoria);
-            cout << "Precio: ";
-            cin >> precio;
-            cout << "Stock: ";
-            cin >> stock;
-
-            if (inventario.insertar(Producto(siguienteId, nombre, categoria, precio, stock))) {
-                cout << "Producto agregado." << endl;
-                siguienteId++;
+            nombre = leerTexto("Nombre: ");
+            if (inventario.buscar(nombre) != nullptr) {
+                cout << "Ese producto ya existe." << endl;
             }
-            else cout << "Ese producto ya existe." << endl;
+            else {
+                string categoria = leerTexto("Categoria: ");
+                int precio = leerNumero("Precio: ");
+                int stock = leerNumero("Stock: ");
+                inventario.insertar(Producto(siguienteId, nombre, categoria, precio, stock));
+                siguienteId++;
+                hayCambios = true;
+                cout << "Producto agregado." << endl;
+            }
         }
         else if (opcion == 6) {
-            cout << "Nombre: ";
-            cin.ignore();
-            getline(cin, nombre);
-            if (inventario.eliminar(nombre)) cout << "Producto eliminado." << endl;
+            nombre = leerTexto("Nombre: ");
+            if (inventario.eliminar(nombre)) {
+                hayCambios = true;
+                cout << "Producto eliminado." << endl;
+            }
             else cout << "No se encontro el producto." << endl;
         }
         else if (opcion == 7) {
-            cout << "Nombre: ";
-            cin.ignore();
-            getline(cin, nombre);
+            nombre = leerTexto("Nombre: ");
             Producto *p = inventario.buscar(nombre);
             if (p != nullptr) {
-                int stock;
-                cout << "Nuevo stock: ";
-                cin >> stock;
-                p->setStock(stock);
+                p->setStock(leerNumero("Nuevo stock: "));
+                hayCambios = true;
                 cout << "Stock actualizado." << endl;
             }
             else cout << "No se encontro el producto." << endl;
@@ -156,7 +209,14 @@ int main() {
         else if (opcion == 8) {
             guardarArchivo(inventario);
         }
+        else if (opcion == 9) {
+            generarReporte(inventario);
+        }
         else if (opcion == 0) {
+            if (hayCambios) {
+                int r = leerNumero("Tienes cambios sin guardar. Quieres guardar? (1 = si, 0 = no): ");
+                if (r == 1) guardarArchivo(inventario);
+            }
             cout << "Fin del programa.\n";
         }
         else {
