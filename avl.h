@@ -6,6 +6,7 @@
 #define AVL_H
 
 #include <vector>
+#include <algorithm>
 #include "producto.h"
 
 struct Nodo {
